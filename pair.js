@@ -1,113 +1,47 @@
-const express = require('express');
-const fs = require('fs');
-const { exec } = require("child_process");
-let router = express.Router()
-const pino = require("pino");
-const {
-    default: makeWASocket,
-    useMultiFileAuthState,
-    delay,
-    makeCacheableSignalKeyStore,
-    Browsers,
-    jidNormalizedUser
-} = require("@whiskeysockets/baileys");
-const { upload } = require('./mega');
+const { bot } = require('../lib');
 
-function removeFile(FilePath) {
-    if (!fs.existsSync(FilePath)) return false;
-    fs.rmSync(FilePath, { recursive: true, force: true });
-}
+bot(
+  {
+    pattern: 'hack ?(.*)',
+    desc: 'Fun and cool hacking simulation',
+    type: 'fun',
+  },
+  async (message, match) => {
+    const target = match || 'target';
 
-router.get('/', async (req, res) => {
-    let num = req.query.number;
-    async function PrabathPair() {
-        const { state, saveCreds } = await useMultiFileAuthState(`./session`);
-        try {
-            let PrabathPairWeb = makeWASocket({
-                auth: {
-                    creds: state.creds,
-                    keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }).child({ level: "fatal" })),
-                },
-                printQRInTerminal: false,
-                logger: pino({ level: "fatal" }).child({ level: "fatal" }),
-                browser: Browsers.macOS("Safari"),
-            });
+    await message.send('*💻 Initializing hack sequence...*');
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
-            if (!PrabathPairWeb.authState.creds.registered) {
-                await delay(1500);
-                num = num.replace(/[^0-9]/g, '');
-                const code = await PrabathPairWeb.requestPairingCode(num);
-                if (!res.headersSent) {
-                    await res.send({ code });
-                }
-            }
+    await message.send('*🔌 Establishing secure connection to the server...*');
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
-            PrabathPairWeb.ev.on('creds.update', saveCreds);
-            PrabathPairWeb.ev.on("connection.update", async (s) => {
-                const { connection, lastDisconnect } = s;
-                if (connection === "open") {
-                    try {
-                        await delay(10000);
-                        const sessionPrabath = fs.readFileSync('./session/creds.json');
+    await message.send('*🛡 Bypassing firewalls and security protocols...*');
+    await displayProgressBar(message, 'Bypassing firewalls', 4);
 
-                        const auth_path = './session/';
-                        const user_jid = jidNormalizedUser(PrabathPairWeb.user.id);
+    await message.send('*🔐 Gaining access to encrypted database...*');
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    await message.send('*🔑 Cracking encryption keys...*');
+    await displayProgressBar(message, 'Cracking encryption', 6);
 
-                      function randomMegaId(length = 6, numberLength = 4) {
-                      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-                      let result = '';
-                      for (let i = 0; i < length; i++) {
-                      result += characters.charAt(Math.floor(Math.random() * characters.length));
-                        }
-                       const number = Math.floor(Math.random() * Math.pow(10, numberLength));
-                        return `${result}${number}`;
-                        }
+    await message.send('*📥 Downloading sensitive data from server...*');
+    await displayProgressBar(message, 'Downloading files', 5);
 
-                        const mega_url = await upload(fs.createReadStream(auth_path + 'creds.json'), `${randomMegaId()}.json`);
+    await message.send('*🔒 Planting a backdoor for future access...*');
+    await new Promise(resolve => setTimeout(resolve, 2500));
 
-                        const string_session = mega_url.replace('https://mega.nz/file/', '');
+    await message.send(`*💥 Hack complete! 🎯 Target "${target}" successfully compromised.*`);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    await message.send('*🤖 Mission accomplished. Logging off...*');
+  }
+);
 
-                        const sid = string_session;
-
-                        const dt = await PrabathPairWeb.sendMessage(user_jid, {
-                            text: sid
-                        });
-
-                        await PrabathPairWeb.sendMessage(user_jid, {
-                            text: "┏━━━━━━━━━━━━━━┓\n┃╭┈───────────\n❗ `Dont share Your code to anyone`\n\n*💕Thank you for using MALVIN-MD*\n\n*👉🏻If you have any problem please contact us on Whatsapp*\n\n*👉🏻https://wa.me/263714757857*\n\n*👉🏻https://github.com/kingmalvn/MALVIN-MD/fork*\n\n----------------------------------------------------\n\n",
-   
-                            });
-   
-
-                    } catch (e) {
-                        exec('pm2 restart prabath');
-                    }
-
-                    await delay(100);
-                    return await removeFile('./session');
-                    process.exit(0);
-                } else if (connection === "close" && lastDisconnect && lastDisconnect.error && lastDisconnect.error.output.statusCode !== 401) {
-                    await delay(10000);
-                    PrabathPair();
-                }
-            });
-        } catch (err) {
-            exec('pm2 restart prabath-md');
-            console.log("service restarted");
-            PrabathPair();
-            await removeFile('./session');
-            if (!res.headersSent) {
-                await res.send({ code: "Service Unavailable" });
-            }
-        }
-    }
-    return await PrabathPair();
-});
-
-process.on('uncaughtException', function (err) {
-    console.log('Caught exception: ' + err);
-    exec('pm2 restart prabath');
-});
-
-
-module.exports = router;
+const displayProgressBar = async (message, taskName, steps) => {
+  const progressBarLength = 20;
+  for (let i = 1; i <= steps; i++) {
+    const progress = Math.round((i / steps) * progressBarLength);
+    const progressBar = '█'.repeat(progress) + '░'.repeat(progressBarLength - progress);
+    await message.send(`*${taskName}:* [${progressBar}]`);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+};
